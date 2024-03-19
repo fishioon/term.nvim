@@ -59,6 +59,17 @@ local function send_to_terminal(text, active)
   end
 end
 
+local function toggle()
+  local term = find_show_terminal()
+  if term == nil then
+    term = create_terminal_window()
+    vim.api.nvim_set_current_win(term.winid)
+    vim.cmd.startinsert()
+  else
+    vim.api.nvim_win_hide(term.winid)
+  end
+end
+
 local function show_terminal()
   return send_to_terminal('ls\n', true)
 end
@@ -71,4 +82,5 @@ return {
   setup = setup,
   send = send_to_terminal,
   show = show_terminal,
+  toggle = toggle,
 }
