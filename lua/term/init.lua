@@ -1,6 +1,6 @@
 -- help for terminal
 local config = {
-  split_cmd = 'vsplit',
+  split_cmd = 'split',
   shell = os.getenv('SHELL') or 'zsh'
 }
 
@@ -31,9 +31,9 @@ local function find_cwd_terminal()
   return nil
 end
 
-local function create_terminal_window()
+local function create_terminal_window(vim_cmd)
   local origin_winid = vim.api.nvim_get_current_win()
-  vim.cmd(config.split_cmd)
+  vim.cmd(vim_cmd or config.split_cmd)
   local term = find_cwd_terminal()
   if term == nil then
     term = { bufnr = vim.api.nvim_create_buf(true, true), chanid = 0 }
