@@ -1,10 +1,14 @@
 -- help for terminal
 local config = {
   split_cmd = 'split',
-  shell = os.getenv('SHELL') or 'zsh'
+  shell = os.getenv('SHELL') or 'zsh',
+  win = { height=18, width=0, pos={0, 0} },
 }
 
-local function find_show_terminal()
+-- keep last terminal window config
+local term_last_win_config = {}
+
+local function find_terminal_window()
   for _, id in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
     local info = vim.fn.getwininfo(id)[1]
     if info.terminal == 1 then
@@ -31,24 +35,41 @@ local function find_cwd_terminal()
   return nil
 end
 
-local function create_terminal_window(vim_cmd)
+local function create_terminal_window()
   local origin_winid = vim.api.nvim_get_current_win()
-  vim.cmd(vim_cmd or config.split_cmd)
   local term = find_cwd_terminal()
   if term == nil then
     term = { bufnr = vim.api.nvim_create_buf(true, true), chanid = 0 }
   end
-  term.winid = vim.api.nvim_get_current_win()
+  local win_config = term_last_win_config[term.bufnr] or config.win
+  if win_config.pos[1] == 0 then
+    vim.cmd('vsplit')
+    term.winid = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_width(term.winid, win_config.width)
+  else
+    vim.cmd('split')
+    term.winid = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_height(term.winid, win_config.height)
+  end
+  -- vim.cmd(config.split_cmd)
+  -- term.winid = vim.api.nvim_open_win(term.bufnr, false, win_config)
+  -- term.winid = vim.api.nvim_get_current_win()
   vim.api.nvim_set_current_buf(term.bufnr)
   if term.chanid == 0 then
     term.chanid = vim.fn.termopen(config.shell)
+  end
+  if win_config.width > 0 then
+    vim.api.nvim_win_set_width(term.winid, win_config.width)
+  end
+  if win_config.height > 0 then
+    vim.api.nvim_win_set_height(term.winid, win_config.height)
   end
   vim.api.nvim_set_current_win(origin_winid)
   return term
 end
 
 local function send_to_terminal(text, active)
-  local term = find_show_terminal()
+  local term = find_terminal_window()
   if term == nil then
     term = create_terminal_window()
   end
@@ -60,12 +81,18 @@ local function send_to_terminal(text, active)
 end
 
 local function toggle()
-  local term = find_show_terminal()
+  local term = find_terminal_window()
   if term == nil then
     term = create_terminal_window()
     vim.api.nvim_set_current_win(term.winid)
     vim.cmd.startinsert()
   else
+    term_last_win_config[term.bufnr] = {
+      height = vim.api.nvim_win_get_height(term.winid),
+      width = vim.api.nvim_win_get_width(term.winid),
+      pos = vim.api.nvim_win_get_position(term.winid),
+    }
+    vim.print(term_last_win_config)
     vim.api.nvim_win_hide(term.winid)
   end
 end
