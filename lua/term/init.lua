@@ -64,6 +64,39 @@ local function create_terminal_window()
   return term
 end
 
+local function create_terminal_window2()
+  local origin_winid = vim.api.nvim_get_current_win()
+  local term = find_cwd_terminal()
+  if not term then
+    term = { bufnr = vim.api.nvim_create_buf(true, true), chanid = 0 }
+  end
+  local win_config = term_last_win_config[term.bufnr] or config.win
+  local width = win_config.width > 0 and win_config.width or math.floor(vim.o.columns / 2)
+  local height = win_config.height > 0 and win_config.height or math.floor(vim.o.lines / 2)
+  -- Calculate window position to center the window
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+  -- Configure the new window
+  local win_opts = {
+    split = 'left',
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+  }
+
+  -- Open the new window with the specified options
+  term.winid = vim.api.nvim_open_win(term.bufnr, true, win_opts)
+  -- Open the terminal if it hasn't been opened yet
+  if term.chanid == 0 then
+    term.chanid = vim.fn.termopen(config.shell)
+  end
+
+  -- Restore the original window
+  vim.api.nvim_set_current_win(origin_winid)
+  return term
+end
+
 local function send_to_terminal(text, active)
   local term = find_terminal_window()
   if term == nil then
