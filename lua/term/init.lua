@@ -2,7 +2,7 @@
 local config = {
   split_cmd = 'split',
   shell = os.getenv('SHELL') or 'zsh',
-  win = { height=18, width=0, pos={0, 0} },
+  win = { height=18, width=0 },
 }
 
 -- keep last terminal window config
@@ -35,6 +35,7 @@ local function find_cwd_terminal()
   return nil
 end
 
+-- TODO: 优化代码
 local function create_terminal_window()
   local origin_winid = vim.api.nvim_get_current_win()
   local term = find_cwd_terminal()
@@ -42,14 +43,18 @@ local function create_terminal_window()
     term = { bufnr = vim.api.nvim_create_buf(true, true), chanid = 0 }
   end
   local win_config = term_last_win_config[term.bufnr] or config.win
-  if win_config.pos[1] == 0 then
+  if win_config.pos and win_config.pos[1] == 0 then
     vim.cmd('vsplit')
     term.winid = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_width(term.winid, win_config.width)
+    if win_config.width > 0 then
+      vim.api.nvim_win_set_width(term.winid, win_config.width)
+    end
   else
     vim.cmd('split')
     term.winid = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_height(term.winid, win_config.height)
+    if win_config.height > 0 then
+      vim.api.nvim_win_set_height(term.winid, win_config.height)
+    end
   end
   -- vim.cmd(config.split_cmd)
   -- term.winid = vim.api.nvim_open_win(term.bufnr, false, win_config)
