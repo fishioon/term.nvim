@@ -43,7 +43,7 @@ local function create_terminal_window()
     term = { bufnr = vim.api.nvim_create_buf(true, true), chanid = 0 }
   end
   local win_config = term_last_win_config[term.bufnr] or config.win
-  if win_config.pos and win_config.pos[1] == 0 then
+  if win_config.pos and win_config.pos[1] < 2 then
     vim.cmd('vsplit')
     term.winid = vim.api.nvim_get_current_win()
     if win_config.width > 0 then
@@ -56,18 +56,9 @@ local function create_terminal_window()
       vim.api.nvim_win_set_height(term.winid, win_config.height)
     end
   end
-  -- vim.cmd(config.split_cmd)
-  -- term.winid = vim.api.nvim_open_win(term.bufnr, false, win_config)
-  -- term.winid = vim.api.nvim_get_current_win()
   vim.api.nvim_set_current_buf(term.bufnr)
   if term.chanid == 0 then
     term.chanid = vim.fn.termopen(config.shell)
-  end
-  if win_config.width > 0 then
-    vim.api.nvim_win_set_width(term.winid, win_config.width)
-  end
-  if win_config.height > 0 then
-    vim.api.nvim_win_set_height(term.winid, win_config.height)
   end
   vim.api.nvim_set_current_win(origin_winid)
   return term
