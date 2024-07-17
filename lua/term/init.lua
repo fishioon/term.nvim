@@ -19,7 +19,7 @@ local function find_show_terminal()
 end
 
 local function find_cwd_terminal()
-  local prefix = string.gsub(vim.fn.getcwd(), '^' .. os.getenv('HOME'), "term://~")
+  local prefix = string.gsub(vim.fn.getcwd(), '^' .. os.getenv('HOME'), "term://~") .. '//'
   for _, chan in pairs(vim.api.nvim_list_chans()) do
     if chan.mode == 'terminal' then
       local name = vim.api.nvim_buf_get_name(chan.buffer)
