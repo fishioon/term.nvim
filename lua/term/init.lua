@@ -121,7 +121,7 @@ local function toggle()
       width = vim.api.nvim_win_get_width(term.winid),
       pos = vim.api.nvim_win_get_position(term.winid),
     }
-    vim.print(term_last_win_config)
+    -- vim.print(term_last_win_config)
     vim.api.nvim_win_hide(term.winid)
   end
 end
