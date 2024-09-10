@@ -2,7 +2,7 @@
 local config = {
   split_cmd = 'split',
   shell = os.getenv('SHELL') or 'zsh',
-  win = { height=18, width=0 },
+  win = { height = 0, width = 0 },
 }
 
 -- keep last terminal window config
@@ -16,6 +16,18 @@ local function find_terminal_window()
         if chan.buffer == info.bufnr then
           return { winid = info.winid, bufnr = info.bufnr, chanid = chan.id, }
         end
+      end
+    end
+  end
+  return nil
+end
+
+local function fork_terminal(bufnr)
+  for _, chan in pairs(vim.api.nvim_list_chans()) do
+    if chan.mode == 'terminal' then
+      local ok, parent_bufnr = pcall(vim.api.nvim_buf_get_var, chan.buffer, 'parent_bufnr')
+      if ok and parent_bufnr == bufnr then
+        return { bufnr = chan.buffer, chanid = chan.id }
       end
     end
   end
@@ -36,11 +48,14 @@ local function find_cwd_terminal()
 end
 
 -- TODO: 优化代码
-local function create_terminal_window()
+local function create_terminal_window(iscwd)
   local origin_winid = vim.api.nvim_get_current_win()
-  local term = find_cwd_terminal()
+  local origin_bufnr = vim.api.nvim_get_current_buf()
+  local term = fork_terminal(origin_bufnr) or (iscwd and find_cwd_terminal() or nil)
   if term == nil then
-    term = { bufnr = vim.api.nvim_create_buf(true, true), chanid = 0 }
+    local bufnr = vim.api.nvim_create_buf(true, true)
+    term = { bufnr = bufnr, chanid = 0 }
+    vim.api.nvim_buf_set_var(bufnr, 'parent_bufnr', origin_bufnr)
   end
   local win_config = term_last_win_config[term.bufnr] or config.win
   if win_config.pos and win_config.pos[1] < 2 then
@@ -64,39 +79,6 @@ local function create_terminal_window()
   return term
 end
 
-local function create_terminal_window2()
-  local origin_winid = vim.api.nvim_get_current_win()
-  local term = find_cwd_terminal()
-  if not term then
-    term = { bufnr = vim.api.nvim_create_buf(true, true), chanid = 0 }
-  end
-  local win_config = term_last_win_config[term.bufnr] or config.win
-  local width = win_config.width > 0 and win_config.width or math.floor(vim.o.columns / 2)
-  local height = win_config.height > 0 and win_config.height or math.floor(vim.o.lines / 2)
-  -- Calculate window position to center the window
-  local row = math.floor((vim.o.lines - height) / 2)
-  local col = math.floor((vim.o.columns - width) / 2)
-  -- Configure the new window
-  local win_opts = {
-    split = 'left',
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-  }
-
-  -- Open the new window with the specified options
-  term.winid = vim.api.nvim_open_win(term.bufnr, true, win_opts)
-  -- Open the terminal if it hasn't been opened yet
-  if term.chanid == 0 then
-    term.chanid = vim.fn.termopen(config.shell)
-  end
-
-  -- Restore the original window
-  vim.api.nvim_set_current_win(origin_winid)
-  return term
-end
-
 local function send_to_terminal(text, active)
   local term = find_terminal_window()
   if term == nil then
@@ -112,7 +94,7 @@ end
 local function toggle()
   local term = find_terminal_window()
   if term == nil then
-    term = create_terminal_window()
+    term = create_terminal_window(true)
     vim.api.nvim_set_current_win(term.winid)
     vim.cmd.startinsert()
   else
@@ -126,10 +108,6 @@ local function toggle()
   end
 end
 
-local function show_terminal()
-  return send_to_terminal('ls\n', true)
-end
-
 local function setup(opt)
   config = vim.tbl_extend('force', config, opt)
 end
@@ -137,6 +115,5 @@ end
 return {
   setup = setup,
   send = send_to_terminal,
-  show = show_terminal,
   toggle = toggle,
 }
