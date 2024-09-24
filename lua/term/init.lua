@@ -23,11 +23,15 @@ local function find_terminal_window()
 end
 
 local function fork_terminal(bufnr)
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  local argv_name = 'echo ' .. bufname
   for _, chan in pairs(vim.api.nvim_list_chans()) do
-    if chan.mode == 'terminal' then
-      local ok, parent_bufnr = pcall(vim.api.nvim_buf_get_var, chan.buffer, 'parent_bufnr')
-      if ok and parent_bufnr == bufnr then
-        return { bufnr = chan.buffer, chanid = chan.id }
+    if chan.mode == 'terminal' and chan.argv then
+      for _, item in pairs(chan.argv) do
+        if item == argv_name then
+          -- vim.print('find terminal ' .. chan.id)
+          return { bufnr = chan.buffer, chanid = chan.id }
+        end
       end
     end
   end
@@ -55,7 +59,7 @@ local function create_terminal_window(iscwd)
   if term == nil then
     local bufnr = vim.api.nvim_create_buf(true, true)
     term = { bufnr = bufnr, chanid = 0 }
-    vim.api.nvim_buf_set_var(bufnr, 'parent_bufnr', origin_bufnr)
+    -- vim.api.nvim_buf_set_var(bufnr, 'parent_bufnr', origin_bufnr)
   end
   local win_config = term_last_win_config[term.bufnr] or config.win
   if win_config.pos and win_config.pos[1] < 2 then
@@ -73,7 +77,8 @@ local function create_terminal_window(iscwd)
   end
   vim.api.nvim_set_current_buf(term.bufnr)
   if term.chanid == 0 then
-    term.chanid = vim.fn.termopen(config.shell)
+    local origin_name = vim.api.nvim_buf_get_name(origin_bufnr)
+    term.chanid = vim.fn.termopen({ config.shell, '-C', 'echo ' .. origin_name })
   end
   vim.api.nvim_set_current_win(origin_winid)
   return term
