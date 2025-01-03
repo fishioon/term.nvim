@@ -80,6 +80,7 @@ local function create_terminal_window(iscwd)
     local origin_name = vim.api.nvim_buf_get_name(origin_bufnr)
     term.chanid = vim.fn.termopen({ config.shell, '-C', 'echo ' .. origin_name })
   end
+
   vim.api.nvim_set_current_win(origin_winid)
   return term
 end
@@ -114,6 +115,7 @@ local function toggle()
 end
 
 local function setup(opt)
+  if not opt then return end
   config = vim.tbl_extend('force', config, opt)
 end
 
